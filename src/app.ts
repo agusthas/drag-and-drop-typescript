@@ -1,3 +1,29 @@
+// Drag & Drop Interfaces
+// To set up a contract so that certain classes can sign, that implement certains method to be able drag & drop
+interface Draggable {
+  // 2 events listener
+  dragStartHandler(event: DragEvent): void;
+  drageEndHanlder(event: DragEvent): void;
+}
+
+interface DragTarget {
+  // 3 events handler
+
+  /**
+   * To basically signal browser and JS that the thing you dragging something over is a valid drag target
+   * If ommited, dropping is not possible
+   */
+  dragOverHandler(event: DragEvent): void;
+  /**
+   * React to the dropping of the thing, update the UI for example
+   */
+  dropHandler(event: DragEvent): void;
+  /**
+   * Giving some visual feedback to the user, well if no drop happen, we can use this to revert our visual update
+   */
+  dragLeaveHandler(event: DragEvent): void;
+}
+
 // Creating a class for Project Type
 // Not an interface because we want to be able to instantiate it
 enum ProjectStatus {
@@ -154,7 +180,10 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> {
 }
 
 // ProjectItem class
-class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
+class ProjectItem
+  extends Component<HTMLUListElement, HTMLLIElement>
+  implements Draggable
+{
   private project: Project;
 
   get persons() {
@@ -173,7 +202,19 @@ class ProjectItem extends Component<HTMLUListElement, HTMLLIElement> {
     this.renderContent();
   }
 
-  configure() {}
+  @autobind
+  dragStartHandler(event: DragEvent) {
+    console.log(event);
+  }
+
+  drageEndHanlder(_: DragEvent) {
+    console.log('DragEnd');
+  }
+
+  configure() {
+    this.element.addEventListener('dragstart', this.dragStartHandler);
+    this.element.addEventListener('dragend', this.drageEndHanlder);
+  }
 
   renderContent() {
     this.element.querySelector('h2')!.textContent = this.project.title;
