@@ -1,0 +1,115 @@
+/// <reference path="base-component.ts"/>
+/// <reference path="../decorators/autobind.ts"/>
+/// <reference path="../util/validation.ts"/>
+/// <reference path="../state/project-state.ts"/>
+
+namespace App {
+  /**
+   * Class used to describe the ProjectInput
+   */
+  export class ProjectInput extends Component<HTMLDivElement, HTMLFormElement> {
+    /**
+     * The input element for title.
+     */
+    titleInputElement!: HTMLInputElement;
+
+    /**
+     * The input element for description.
+     */
+    descriptionInputElement!: HTMLInputElement;
+
+    /**
+     * The input element for number of people.
+     */
+    peopleInputElement!: HTMLInputElement;
+
+    /**
+     * Construct and render the ProjectInput
+     */
+    constructor() {
+      super('project-input', 'app', true, 'user-input');
+
+      this.configure();
+    }
+
+    configure() {
+      this.titleInputElement = this.element.querySelector(
+        '#title'
+      ) as HTMLInputElement;
+      this.descriptionInputElement = this.element.querySelector(
+        '#description'
+      ) as HTMLInputElement;
+      this.peopleInputElement = this.element.querySelector(
+        '#people'
+      ) as HTMLInputElement;
+      this.element.addEventListener('submit', this.submitHandler); // using bind this will refer to the class itself -> replace with decorators
+    }
+
+    renderContent() {} // empty function just to satisfy the condition for TS
+
+    /**
+     * Validate and gather user input.
+     * @returns Will give an `alert` if validation is invalid, else return a tuple of the user's input.
+     */
+    private gatherUserInput(): [string, string, number] | void {
+      const enteredTitle = this.titleInputElement.value;
+      const enteredDescription = this.descriptionInputElement.value;
+      const enteredPeople = this.peopleInputElement.value;
+
+      const titleValidatable: Validatable = {
+        value: enteredTitle,
+        required: true,
+      };
+      const descriptionValidatable: Validatable = {
+        value: enteredDescription,
+        required: true,
+        minLength: 5,
+      };
+      const peopleValidatable: Validatable = {
+        value: +enteredPeople,
+        required: true,
+        min: 1,
+        max: 5,
+      };
+
+      if (
+        !validate(titleValidatable) ||
+        !validate(descriptionValidatable) ||
+        !validate(peopleValidatable)
+      ) {
+        alert('Invalid input, please try again!');
+        return;
+      } else {
+        return [enteredTitle, enteredDescription, Number(enteredPeople)];
+      }
+    }
+
+    /**
+     * Clear the input elements value.
+     */
+    private clearInputs() {
+      this.titleInputElement.value = '';
+      this.descriptionInputElement.value = '';
+      this.peopleInputElement.value = '';
+    }
+
+    /**
+     * Handler for the `submit` event.
+     *
+     * If userInput is valid, this will store the inputs as a project inside ProjectState class.
+     */
+    @autobind
+    private submitHandler(evt: Event) {
+      evt.preventDefault();
+
+      const userInput = this.gatherUserInput();
+
+      if (Array.isArray(userInput)) {
+        const [title, desc, people] = userInput;
+
+        projectState.addProject(title, desc, people);
+        this.clearInputs();
+      }
+    }
+  }
+}
