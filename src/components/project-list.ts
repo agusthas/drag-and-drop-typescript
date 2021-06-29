@@ -1,105 +1,104 @@
-/// <reference path="base-component.ts"/>
-/// <reference path="../decorators/autobind.ts"/>
-/// <reference path="../state/project-state.ts"/>
-/// <reference path="../models/project.ts"/>
-/// <reference path="../models/drag-drop.ts"/>
+import { DragTarget } from '../models/drag-drop.js';
+import { Project, ProjectStatus } from '../models/project.js';
+import { Component } from './base-component.js';
+import { autobind } from '../decorators/autobind.js';
+import { projectState } from '../state/project-state.js';
+import { ProjectItem } from './project-item.js';
 
-namespace App {
+/**
+ * A list of Project as a class
+ * @extends Component
+ * @implements DragTarget
+ */
+export class ProjectList
+  extends Component<HTMLDivElement, HTMLElement>
+  implements DragTarget
+{
   /**
-   * A list of Project as a class
-   * @extends Component
-   * @implements DragTarget
+   * A project list that will be rendered.
    */
-  export class ProjectList
-    extends Component<HTMLDivElement, HTMLElement>
-    implements DragTarget
-  {
-    /**
-     * A project list that will be rendered.
-     */
-    assignedProjects: Project[] = [];
+  assignedProjects: Project[] = [];
 
-    /**
-     * Construct and render the `assignedProjects` to the `hostElement`
-     * @param type Specify which type of the project status. `active` or `finished`. This will be used to describe the `id` of the project.
-     */
-    constructor(private type: 'active' | 'finished') {
-      super('project-list', 'app', false, `${type}-projects`);
+  /**
+   * Construct and render the `assignedProjects` to the `hostElement`
+   * @param type Specify which type of the project status. `active` or `finished`. This will be used to describe the `id` of the project.
+   */
+  constructor(private type: 'active' | 'finished') {
+    super('project-list', 'app', false, `${type}-projects`);
 
-      this.configure();
-      this.renderContent();
-    }
+    this.configure();
+    this.renderContent();
+  }
 
-    @autobind
-    dragOverHandler(event: DragEvent) {
-      if (event.dataTransfer && event.dataTransfer.types[0] === 'text/plain') {
-        // default for drag and drop event is not to allow dropping.
-        // this prevent default is to allow drop and trigger the drop event.
-        event.preventDefault();
-
-        const listEl = this.element.querySelector('ul')!;
-        listEl.classList.add('droppable');
-      }
-    }
-
-    @autobind
-    dropHandler(event: DragEvent) {
+  @autobind
+  dragOverHandler(event: DragEvent) {
+    if (event.dataTransfer && event.dataTransfer.types[0] === 'text/plain') {
+      // default for drag and drop event is not to allow dropping.
+      // this prevent default is to allow drop and trigger the drop event.
       event.preventDefault();
-      const prjId = event.dataTransfer!.getData('text/plain');
-      projectState.moveProject(
-        prjId,
-        this.type === 'active' ? ProjectStatus.Active : ProjectStatus.Finished
-      );
-    }
 
-    @autobind
-    dragLeaveHandler(_: DragEvent) {
       const listEl = this.element.querySelector('ul')!;
-      listEl.classList.remove('droppable');
+      listEl.classList.add('droppable');
     }
+  }
 
-    configure() {
-      this.element.addEventListener('dragover', this.dragOverHandler);
-      this.element.addEventListener('dragleave', this.dragLeaveHandler);
-      this.element.addEventListener('drop', this.dropHandler);
+  @autobind
+  dropHandler(event: DragEvent) {
+    event.preventDefault();
+    const prjId = event.dataTransfer!.getData('text/plain');
+    projectState.moveProject(
+      prjId,
+      this.type === 'active' ? ProjectStatus.Active : ProjectStatus.Finished
+    );
+  }
 
-      projectState.addListener((projects) => {
-        const relevantProjects = projects.filter((prj) => {
-          if (this.type === 'active') {
-            return prj.status === ProjectStatus.Active;
-          }
+  @autobind
+  dragLeaveHandler(_: DragEvent) {
+    const listEl = this.element.querySelector('ul')!;
+    listEl.classList.remove('droppable');
+  }
 
-          return prj.status === ProjectStatus.Finished;
-        });
+  configure() {
+    this.element.addEventListener('dragover', this.dragOverHandler);
+    this.element.addEventListener('dragleave', this.dragLeaveHandler);
+    this.element.addEventListener('drop', this.dropHandler);
 
-        this.assignedProjects = relevantProjects;
-        this.renderProjects();
+    projectState.addListener((projects) => {
+      const relevantProjects = projects.filter((prj) => {
+        if (this.type === 'active') {
+          return prj.status === ProjectStatus.Active;
+        }
+
+        return prj.status === ProjectStatus.Finished;
       });
-    }
 
-    renderContent() {
-      const listId = `${this.type}-projects-list`;
-      this.element.querySelector('ul')!.id = listId;
-      this.element.querySelector('h2')!.textContent =
-        this.type.toUpperCase() + ' PROJECTS';
-    }
+      this.assignedProjects = relevantProjects;
+      this.renderProjects();
+    });
+  }
 
-    /**
-     * Method to render the list of assigned project.
-     *
-     * This will clear out the list before and renders a new list of assigned projects.
-     * @private
-     */
-    private renderProjects() {
-      const listEl = document.getElementById(
-        `${this.type}-projects-list`
-      ) as HTMLUListElement;
+  renderContent() {
+    const listId = `${this.type}-projects-list`;
+    this.element.querySelector('ul')!.id = listId;
+    this.element.querySelector('h2')!.textContent =
+      this.type.toUpperCase() + ' PROJECTS';
+  }
 
-      listEl.innerHTML = ''; // clears the list first
+  /**
+   * Method to render the list of assigned project.
+   *
+   * This will clear out the list before and renders a new list of assigned projects.
+   * @private
+   */
+  private renderProjects() {
+    const listEl = document.getElementById(
+      `${this.type}-projects-list`
+    ) as HTMLUListElement;
 
-      for (const prjItem of this.assignedProjects) {
-        new ProjectItem(this.element.querySelector('ul')!.id, prjItem);
-      }
+    listEl.innerHTML = ''; // clears the list first
+
+    for (const prjItem of this.assignedProjects) {
+      new ProjectItem(this.element.querySelector('ul')!.id, prjItem);
     }
   }
 }
